@@ -1,0 +1,16 @@
+{
+	"compatibility_date": "2025-10-08",
+	"main": "src/index.ts",
+	"name": "consortium-kernel",
+	"upload_source_maps": true,
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_id": "59ee5f42-7d3e-49c2-a18b-bc887e708796",
+			"database_name": "consortium_ledger"
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
+}
