@@ -1,0 +1,236 @@
+{
+  "version": "1.0",
+  "feature": {
+    "name": "Council Decision Synthesis",
+    "slug": "council.post",
+    "owner_role": "ARCHITECT",
+    "tags": ["slice-4", "council", "decision-card"]
+  },
+  "goal": "Synthesize multi-role council stances into a canonical decision card and derived tasks.",
+  "constraints": [
+    "quorum must include 5 executive seat stances",
+    "decision_card is canonical artifact stored in decisions.decision_json",
+    "tasks table remains canonical task execution store",
+    "decision_card stays minimal: goal, constraints, plan, acceptance_tests, definition_of_done"
+  ],
+  "data": {
+    "tables": [
+      {
+        "name": "decisions",
+        "columns": [
+          { "name": "id", "type": "TEXT", "primary_key": true },
+          { "name": "goal", "type": "TEXT", "nullable": false },
+          { "name": "decision_json", "type": "TEXT", "nullable": false },
+          { "name": "status", "type": "TEXT", "nullable": false },
+          { "name": "created_at", "type": "TEXT", "nullable": false }
+        ]
+      },
+      {
+        "name": "tasks",
+        "columns": [
+          { "name": "id", "type": "TEXT", "primary_key": true },
+          {
+            "name": "decision_id",
+            "type": "TEXT",
+            "nullable": false,
+            "references": { "table": "decisions", "column": "id" }
+          },
+          { "name": "description", "type": "TEXT", "nullable": false },
+          { "name": "status", "type": "TEXT", "nullable": false },
+          { "name": "created_at", "type": "TEXT", "nullable": false }
+        ]
+      },
+      {
+        "name": "runs",
+        "columns": [
+          { "name": "id", "type": "TEXT", "primary_key": true },
+          { "name": "request_id", "type": "TEXT", "nullable": false },
+          { "name": "route", "type": "TEXT", "nullable": false },
+          { "name": "ok", "type": "INTEGER", "nullable": false },
+          { "name": "error", "type": "TEXT", "nullable": true },
+          { "name": "created_at", "type": "TEXT", "nullable": false }
+        ]
+      }
+    ],
+    "constraints": [
+      { "kind": "foreign_key", "detail": "tasks.decision_id references decisions.id" },
+      { "kind": "index", "detail": "tasks are selected by decision_id for readback" }
+    ],
+    "access_control": {
+      "model": "cloudflare_access",
+      "rules": [
+        "protected routes require devuser assertion or service-token headers",
+        "deny when auth secrets are missing and protection is enabled"
+      ]
+    }
+  },
+  "api": {
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/council",
+        "auth": {
+          "required": true,
+          "strategy": "cloudflare_access",
+          "notes": "Supports devuser assertion or service token headers"
+        },
+        "request": {
+          "path_params": [],
+          "query_params": [],
+          "headers": [
+            {
+              "name": "cf-access-jwt-assertion",
+              "type": "string",
+              "required": false,
+              "description": "Devuser access assertion token"
+            },
+            {
+              "name": "cf-access-client-id",
+              "type": "string",
+              "required": false,
+              "description": "Service token client id"
+            },
+            {
+              "name": "cf-access-client-secret",
+              "type": "string",
+              "required": false,
+              "description": "Service token client secret"
+            }
+          ],
+          "body": {
+            "type": "object",
+            "required": ["goal"],
+            "properties": {
+              "goal": { "type": "string" }
+            }
+          }
+        },
+        "responses": [
+          {
+            "status": 200,
+            "body": {
+              "ok": true,
+              "data": {
+                "decision_id": "string",
+                "interaction_model": "tiered",
+                "stages": "array",
+                "selected_specialists": "array",
+                "specialist_stances": "array",
+                "quorum": "array",
+                "decision_card": "object",
+                "tasks": "array"
+              },
+              "request_id": "string"
+            }
+          },
+          {
+            "status": 400,
+            "body": {
+              "ok": false,
+              "error": { "code": "missing_goal" },
+              "request_id": "string"
+            }
+          },
+          {
+            "status": 403,
+            "body": {
+              "ok": false,
+              "error": { "code": "unauthorized" },
+              "request_id": "string"
+            }
+          },
+          {
+            "status": 500,
+            "body": {
+              "ok": false,
+              "error": {
+                "code": "db_error",
+                "detail": "string"
+              },
+              "request_id": "string"
+            }
+          }
+        ]
+      }
+    ],
+    "error_model": {
+      "shape": {
+        "ok": false,
+        "error": {
+          "code": "string",
+          "detail": "string?"
+        },
+        "request_id": "string"
+      },
+      "required_fields": ["ok", "error", "request_id"]
+    }
+  },
+  "client": {
+    "functions": [
+      {
+        "name": "createCouncilDecision",
+        "endpoint": { "method": "POST", "path": "/council" },
+        "returns": "CouncilDecisionPacket",
+        "notes": "Returns quorum stances, specialist stances, decision card, and derived tasks"
+      }
+    ],
+    "timeouts": { "default_ms": 10000 },
+    "retries": {
+      "network_max_attempts": 1,
+      "retry_on_statuses": [502, 503, 504]
+    }
+  },
+  "ui": {
+    "states": ["idle", "loading", "success", "error"],
+    "rendering_rules": [
+      {
+        "state": "loading",
+        "renders": "Show council synthesis request in progress."
+      },
+      {
+        "state": "success",
+        "renders": "Show decision_id, decision_card sections, and derived tasks list."
+      },
+      {
+        "state": "error",
+        "renders": "Show error.code and request_id for debugging and support handoff."
+      }
+    ]
+  },
+  "observability": {
+    "request_id": {
+      "required_on_success": true,
+      "required_on_error": true
+    },
+    "server_logging": {
+      "runs_table": "runs",
+      "fields": ["request_id", "route", "ok", "error"]
+    },
+    "client_debug": {
+      "show_request_id": true,
+      "copy_debug_button": true
+    }
+  },
+  "acceptance_tests": [
+    {
+      "id": "AT-401",
+      "type": "integration",
+      "statement": "POST /council returns interaction_model=tiered and stages: propose, review, final with decision_card and tasks."
+    },
+    {
+      "id": "AT-402",
+      "type": "db",
+      "statement": "Stored decision_json contains decision_card and quorum; tasks table rows match decision_card.plan count."
+    },
+    {
+      "id": "AT-403",
+      "type": "integration",
+      "statement": "GET /decisions/:id mirrors quorum and decision_card structure returned by POST /council."
+    }
+  ],
+  "definition_of_done": [
+    "Council packet shape is stable across write and readback",
+    "decision_card is persisted as canonical artifact in decisions.decision_json",
+    "tasks table rows match decision_card.plan in count and todo status"
+  ]
+}

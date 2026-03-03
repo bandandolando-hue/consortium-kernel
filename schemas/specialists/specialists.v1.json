@@ -1,0 +1,146 @@
+{
+  "version": "1.0",
+  "specialists": [
+    {
+      "id": "ARCHIVIST",
+      "name": "Archivist",
+      "best_for": "Knowledge systems",
+      "output_type": "Canon library",
+      "selection_rule": { "kind": "always", "allow_disable": true },
+      "tier": "review",
+      "stance_schema": "ARCHIVIST_STANCE_V1"
+    },
+    {
+      "id": "NARRATIVE",
+      "name": "Lore",
+      "best_for": "Story / world / voice constraints",
+      "output_type": "Tone + authority guardrails",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["world", "tone", "lore", "story", "codex", "inscription", "relic", "authority", "player-facing", "narrative"]
+      },
+      "tier": "review",
+      "stance_schema": "LORE_STANCE_V1"
+    },
+    {
+      "id": "ARCHITECT",
+      "name": "Architect",
+      "best_for": "System architecture / API contracts / data boundaries",
+      "output_type": "Governance-aligned architecture review",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["architecture", "architect", "api", "contract", "contracts", "data model", "schema", "governance", "kernel", "internal-only"]
+      },
+      "tier": "review",
+      "stance_schema": "STANCE_V1"
+    },
+    {
+      "id": "AURORA",
+      "name": "Aurora",
+      "best_for": "Plot scaffolding",
+      "output_type": "Narrative frameworks",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["plot", "arc", "chapter", "beat", "outline", "scaffolding", "story structure"]
+      },
+      "tier": "propose",
+      "stance_schema": "STANCE_V1"
+    },
+    {
+      "id": "VOX_FORGE",
+      "name": "Vox Forge",
+      "best_for": "Dialogue & voice",
+      "output_type": "Script assets",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["dialogue", "voice", "monologue", "script", "scene", "lines"]
+      },
+      "tier": "propose",
+      "stance_schema": "STANCE_V1"
+    },
+    {
+      "id": "GLYPH",
+      "name": "Glyph",
+      "best_for": "Visual DNA",
+      "output_type": "Concept boards",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["visual", "style", "aesthetic", "concept", "moodboard", "palette", "brand", "logo", "icon"]
+      },
+      "tier": "propose",
+      "stance_schema": "STANCE_V1"
+    },
+    {
+      "id": "RHYTHM",
+      "name": "Rhythm",
+      "best_for": "Audio ecosystems",
+      "output_type": "Adaptive soundtracks",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["audio", "sound", "music", "score", "soundtrack", "sfx"]
+      },
+      "tier": "propose",
+      "stance_schema": "STANCE_V1"
+    },
+    {
+      "id": "TERRA",
+      "name": "Terra",
+      "best_for": "Spatial worlds",
+      "output_type": "Interactive maps",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["map", "world", "space", "level", "environment", "spatial", "location"]
+      },
+      "tier": "propose",
+      "stance_schema": "STANCE_V1"
+    },
+    {
+      "id": "PULSE",
+      "name": "Pulse",
+      "best_for": "Game mechanics",
+      "output_type": "Play loops & rewards",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["game", "loop", "mechanic", "xp", "reward", "economy", "rarity", "progression"]
+      },
+      "tier": "propose",
+      "stance_schema": "STANCE_V1"
+    },
+    {
+      "id": "SPECTRA",
+      "name": "Spectra",
+      "best_for": "UI/UX",
+      "output_type": "Interface flows",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["ui", "ux", "flow", "screen", "component", "interaction", "layout"]
+      },
+      "tier": "propose",
+      "stance_schema": "STANCE_V1"
+    },
+    {
+      "id": "HERMES",
+      "name": "Hermes",
+      "best_for": "Dynamic stories",
+      "output_type": "Reactive narratives",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["reactive", "dynamic", "branching", "state machine", "event", "procedural narrative"]
+      },
+      "tier": "propose",
+      "stance_schema": "STANCE_V1"
+    },
+    {
+      "id": "CATALYST",
+      "name": "Catalyst",
+      "best_for": "Ideation",
+      "output_type": "Idea networks",
+      "selection_rule": {
+        "kind": "keyword",
+        "keywords": ["ideate", "options", "brainstorm", "alternatives", "strategy", "concept"]
+      },
+      "tier": "propose",
+      "stance_schema": "STANCE_V1"
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+{
+  "version": "1.0",
+  "feature": {
+    "name": "Decision Retrieval Card",
+    "slug": "decisions.getbyid",
+    "owner_role": "ARCHITECT",
+    "tags": ["slice-2", "readback", "decision-card"]
+  },
+  "goal": "Retrieve a stored decision and linked tasks by decision id.",
+  "constraints": [
+    "request_id must be present on success and error",
+    "decision and tasks are read from D1 only",
+    "route is logged to runs table"
+  ],
+  "data": {
+    "tables": [
+      {
+        "name": "decisions",
+        "columns": [
+          { "name": "id", "type": "TEXT", "primary_key": true },
+          { "name": "goal", "type": "TEXT", "nullable": false },
+          { "name": "decision_json", "type": "TEXT", "nullable": false },
+          { "name": "status", "type": "TEXT", "nullable": false },
+          { "name": "created_at", "type": "TEXT", "nullable": false }
+        ]
+      },
+      {
+        "name": "tasks",
+        "columns": [
+          { "name": "id", "type": "TEXT", "primary_key": true },
+          {
+            "name": "decision_id",
+            "type": "TEXT",
+            "nullable": false,
+            "references": { "table": "decisions", "column": "id" }
+          },
+          { "name": "description", "type": "TEXT", "nullable": false },
+          { "name": "status", "type": "TEXT", "nullable": false },
+          { "name": "created_at", "type": "TEXT", "nullable": false }
+        ]
+      },
+      {
+        "name": "runs",
+        "columns": [
+          { "name": "id", "type": "TEXT", "primary_key": true },
+          { "name": "request_id", "type": "TEXT", "nullable": false },
+          { "name": "route", "type": "TEXT", "nullable": false },
+          { "name": "ok", "type": "INTEGER", "nullable": false },
+          { "name": "error", "type": "TEXT", "nullable": true },
+          { "name": "created_at", "type": "TEXT", "nullable": false }
+        ]
+      }
+    ],
+    "constraints": [
+      { "kind": "foreign_key", "detail": "tasks.decision_id references decisions.id" },
+      { "kind": "index", "detail": "tasks are selected by decision_id for readback" }
+    ],
+    "access_control": {
+      "model": "cloudflare_access",
+      "rules": [
+        "Public access is temporary for local development only",
+        "Cloudflare Access gate is required in Slice 3"
+      ]
+    }
+  },
+  "api": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/decisions/:id",
+        "auth": {
+          "required": true,
+          "strategy": "cloudflare_access",
+          "notes": "Protected route; accepts devuser assertion header or service-token headers"
+        },
+        "request": {
+          "path_params": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "description": "Decision UUID"
+            }
+          ],
+          "query_params": [],
+          "headers": [
+            {
+              "name": "cf-access-jwt-assertion",
+              "type": "string",
+              "required": false,
+              "description": "Devuser access assertion token"
+            },
+            {
+              "name": "cf-access-client-id",
+              "type": "string",
+              "required": false,
+              "description": "Service token client id"
+            },
+            {
+              "name": "cf-access-client-secret",
+              "type": "string",
+              "required": false,
+              "description": "Service token client secret"
+            }
+          ],
+          "body": null
+        },
+        "responses": [
+          {
+            "status": 200,
+            "body": {
+              "ok": true,
+              "data": {
+                "decision_id": "string",
+                "decision": "object",
+                "tasks": "array"
+              },
+              "request_id": "string"
+            }
+          },
+          {
+            "status": 404,
+            "body": {
+              "ok": false,
+              "error": {
+                "code": "not_found"
+              },
+              "request_id": "string"
+            }
+          },
+          {
+            "status": 500,
+            "body": {
+              "ok": false,
+              "error": {
+                "code": "db_error",
+                "detail": "string"
+              },
+              "request_id": "string"
+            }
+          }
+        ]
+      }
+    ],
+    "error_model": {
+      "shape": {
+        "ok": false,
+        "error": {
+          "code": "string",
+          "detail": "string?"
+        },
+        "request_id": "string",
+        "status": "number?"
+      },
+      "required_fields": ["ok", "error", "request_id"]
+    }
+  },
+  "client": {
+    "functions": [
+      {
+        "name": "getDecisionById",
+        "endpoint": { "method": "GET", "path": "/decisions/:id" },
+        "returns": "DecisionCard",
+        "notes": "Uses decision_id returned from /council"
+      }
+    ],
+    "timeouts": { "default_ms": 10000 },
+    "retries": {
+      "network_max_attempts": 1,
+      "retry_on_statuses": [502, 503, 504]
+    }
+  },
+  "ui": {
+    "states": ["idle", "loading", "success", "not_found", "error"],
+    "rendering_rules": [
+      {
+        "state": "loading",
+        "renders": "Show request in progress indicator while fetching decision card."
+      },
+      {
+        "state": "success",
+        "renders": "Show decision goal, tasks list, and request_id for debugging."
+      },
+      {
+        "state": "not_found",
+        "renders": "Show decision not found message with request_id."
+      },
+      {
+        "state": "error",
+        "renders": "Show non-retryable error state with request_id and support hint."
+      }
+    ]
+  },
+  "observability": {
+    "request_id": {
+      "required_on_success": true,
+      "required_on_error": true
+    },
+    "server_logging": {
+      "runs_table": "runs",
+      "fields": ["request_id", "route", "ok", "error"]
+    },
+    "client_debug": {
+      "show_request_id": true,
+      "copy_debug_button": true
+    }
+  },
+  "acceptance_tests": [
+    {
+      "id": "AT-201",
+      "type": "integration",
+      "statement": "A decision created via POST /council can be retrieved by GET /decisions/:id."
+    },
+    {
+      "id": "AT-202",
+      "type": "api",
+      "statement": "GET /decisions/not-a-real-id returns 404 with ok=false, error.code=not_found, and request_id."
+    },
+    {
+      "id": "AT-203",
+      "type": "db",
+      "statement": "Every GET /decisions/:id request writes a runs row with route and outcome."
+    }
+  ],
+  "definition_of_done": [
+    "Contract pack validates against contract-pack.schema.json",
+    "Contract pack mirrors live endpoint behavior for /decisions/:id",
+    "Acceptance tests reference API and observability outcomes"
+  ]
+}
